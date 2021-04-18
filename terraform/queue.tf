@@ -26,3 +26,7 @@ resource "aws_sqs_queue_policy" "domotics_gateway" {
 }
 POLICY
 }
+
+output "queue_url" {
+  value= aws_sqs_queue.domotics.id
+}
