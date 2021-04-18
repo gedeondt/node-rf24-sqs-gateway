@@ -18,21 +18,27 @@ var params = {
     WaitTimeSeconds: 20
 };
 
-sqs.receiveMessage(params, function(err, data) {
-    if (err) {
-      console.log("Receive Error", err);
-    } else if (data.Messages) {
-      console.log(data);
-      var deleteParams = {
-        QueueUrl: queueURL,
-        ReceiptHandle: data.Messages[0].ReceiptHandle
-      };
-      sqs.deleteMessage(deleteParams, function(err, data) {
+function getMessage()
+{
+   sqs.receiveMessage(params, function(err, data) {
         if (err) {
-          console.log("Delete Error", err);
-        } else {
-          console.log("Message Deleted", data);
+            console.log("Receive Error", err);
+        } else if (data.Messages) {
+            console.log(data);
+            var deleteParams = {
+            QueueUrl: queueURL,
+            ReceiptHandle: data.Messages[0].ReceiptHandle
+            };
+            sqs.deleteMessage(deleteParams, function(err, data) {
+                if (err) {
+                    console.log("Delete Error", err);
+                } else {
+                    console.log("Message Deleted", data);
+                }
+            });
         }
-      });
-    }
-  });
+        getMessage();
+    });
+}
+
+getMessage();
