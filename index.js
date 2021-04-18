@@ -1,11 +1,12 @@
 var AWS = require('aws-sdk');
+var nrf24=require("nrf24");
 require('dotenv').config();
 
 AWS.config.update({region: process.env.AWS_REGION});
 var sqs = new AWS.SQS({apiVersion: '2012-11-05'});
 var queueURL = process.env.AWS_QUEUE;
 
-var params = {
+var queueParams = {
     AttributeNames: [
        "SentTimestamp"
     ],
@@ -18,9 +19,11 @@ var params = {
     WaitTimeSeconds: 20
 };
 
+var rf24= new nrf24.nRF24(parseInt(process.env.CE), parseInt(process.env.CS));
+
 function getMessage()
 {
-   sqs.receiveMessage(params, function(err, data) {
+   sqs.receiveMessage(queueParams, function(err, data) {
         if (err) {
             console.log("Receive Error", err);
         } else if (data.Messages) {
