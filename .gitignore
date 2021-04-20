@@ -5,3 +5,4 @@ terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 node_modules
 package-lock.json
+run.sh
