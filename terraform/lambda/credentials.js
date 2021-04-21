@@ -3,11 +3,25 @@ const AWS = require('aws-sdk');
 
 exports.handler = function (event, context, callback) {
   
-  const savedPasswords = JSON.parse(process.env.PASSWORDS);
-  const requestPassword = JSON.parse(event.body);
+  let savedPasswords;
+  try {
+    savedPasswords = JSON.parse(process.env.PASSWORDS);
+  } catch (e) {
+    callback(null, { statusCode: 503, body: "No passwords configured" });
+    return;
+  }
+  
+  let requestObject, user, password;
+  try {
+    requestObject = JSON.parse(event.body);
+    user = requestObject['user'];
+    password = requestObject['password'];
+  } catch (e) {
+    callback(null, { statusCode: 400, body: "Check json:"+e });
+    return;
+  }
 
-  if(savedPasswords[requestPassword['user']] &&
-     savedPasswords[requestPassword['user']] == requestPassword.password)
+  if(user && savedPasswords[user] == password)
   {
       var roleToAssume = {RoleArn: process.env.ROLE_ARN,
                       RoleSessionName: 'session1',
@@ -31,6 +45,6 @@ exports.handler = function (event, context, callback) {
   }
   else
   {
-    callback(null, { statusCode: 401, body: JSON.stringify(savedPasswords)+JSON.stringify(requestPassword)});
+    callback(null, { statusCode: 401, body: "Bad credentials"});
   }
 }

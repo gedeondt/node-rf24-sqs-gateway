@@ -4,7 +4,8 @@ resource "aws_lambda_function" "credentials" {
 
     environment {
         variables = {
-        ROLE_ARN = aws_iam_role.domotics_role.arn
+         ROLE_ARN = aws_iam_role.domotics_role.arn,
+         PASSWORDS = "{\"test\":\"123456789\"}"
         }
     }
    
