@@ -34,75 +34,24 @@ resource "aws_iam_role" "credentials_lambda_role" {
 EOF
 }
 
-resource "aws_api_gateway_rest_api" "credentialsAPI" {
-  name        = "credentialsAPI"
+module "apigateway_with_cors" {
+  source  = "alparius/apigateway-with-cors/aws"
+  version = "0.3.1"
+
+  lambda_function_name = aws_lambda_function.credentials.function_name
+  lambda_invoke_arn    = aws_lambda_function.credentials.invoke_arn
+  http_method = "POST"
+  path_part = "credentials"
 }
 
+resource "aws_api_gateway_domain_name" "credentials_domain" {
+  count = var.credentials_domain != "" ? 1 : 0
 
-
-resource "aws_api_gateway_resource" "proxy" {
-   rest_api_id = aws_api_gateway_rest_api.credentialsAPI.id
-   parent_id   = aws_api_gateway_rest_api.credentialsAPI.root_resource_id
-   path_part   = "{proxy+}"
+  certificate_arn = var.credentials_cert_arn
+  domain_name     = var.credentials_domain
 }
-
-resource "aws_api_gateway_method" "proxyMethod" {
-   rest_api_id   = aws_api_gateway_rest_api.credentialsAPI.id
-   resource_id   = aws_api_gateway_resource.proxy.id
-   http_method   = "ANY"
-   authorization = "NONE"
-}
-
-resource "aws_api_gateway_integration" "lambda" {
-   rest_api_id = aws_api_gateway_rest_api.credentialsAPI.id
-   resource_id = aws_api_gateway_method.proxyMethod.resource_id
-   http_method = aws_api_gateway_method.proxyMethod.http_method
-
-   integration_http_method = "POST"
-   type                    = "AWS_PROXY"
-   uri                     = aws_lambda_function.credentials.invoke_arn
-}
-
-resource "aws_api_gateway_method" "proxy_root" {
-   rest_api_id   = aws_api_gateway_rest_api.credentialsAPI.id
-   resource_id   = aws_api_gateway_rest_api.credentialsAPI.root_resource_id
-   http_method   = "ANY"
-   authorization = "NONE"
-}
-
-resource "aws_api_gateway_integration" "lambda_root" {
-   rest_api_id = aws_api_gateway_rest_api.credentialsAPI.id
-   resource_id = aws_api_gateway_method.proxy_root.resource_id
-   http_method = aws_api_gateway_method.proxy_root.http_method
-
-   integration_http_method = "POST"
-   type                    = "AWS_PROXY"
-   uri                     = aws_lambda_function.credentials.invoke_arn
-}
-
-
-resource "aws_api_gateway_deployment" "apideploy" {
-   depends_on = [
-     aws_api_gateway_integration.lambda,
-     aws_api_gateway_integration.lambda_root,
-   ]
-
-   rest_api_id = aws_api_gateway_rest_api.credentialsAPI.id
-   stage_name  = "test"
-}
-
-
-resource "aws_lambda_permission" "apigw" {
-   statement_id  = "AllowAPIGatewayInvoke"
-   action        = "lambda:InvokeFunction"
-   function_name = aws_lambda_function.credentials.function_name
-   principal     = "apigateway.amazonaws.com"
-
-   source_arn = "${aws_api_gateway_rest_api.credentialsAPI.execution_arn}/*/*"
-}
-
 
 output "base_url" {
-  value = aws_api_gateway_deployment.apideploy.invoke_url
+  value = module.apigateway_with_cors.lambda_url
 }
 
