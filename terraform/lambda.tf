@@ -48,7 +48,7 @@ resource "aws_api_gateway_domain_name" "credentials_domain" {
   count = var.credentials_domain != "" ? 1 : 0
 
   certificate_arn = var.credentials_cert_arn
-  domain_name     = "${var.credentials_domain}.${var.credentials_subdomain}"
+  domain_name     = "${var.credentials_subdomain}.${var.credentials_domain}"
 }
 
 resource "aws_route53_record" "credentials_domain_zone_record" {
