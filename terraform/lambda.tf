@@ -48,12 +48,12 @@ resource "aws_api_gateway_domain_name" "credentials_domain" {
   count = var.credentials_domain != "" ? 1 : 0
 
   certificate_arn = var.credentials_cert_arn
-  domain_name     = var.credentials_domain
+  domain_name     = "${var.credentials_domain}.${var.credentials_subdomain}"
 }
 
-resource "aws_route53_record" "credentials_domain_record" {
+resource "aws_route53_record" "credentials_domain_zone_record" {
   count   = var.credentials_domain_zone_id != "" ? 1 : 0
-  name    = "credentials_domain_record"
+  name    = var.credentials_subdomain
   type    = "A"
   zone_id = var.credentials_domain_zone_id
 
@@ -62,15 +62,6 @@ resource "aws_route53_record" "credentials_domain_record" {
     name       = aws_api_gateway_domain_name.credentials_domain[0].cloudfront_domain_name
     zone_id    = aws_api_gateway_domain_name.credentials_domain[0].cloudfront_zone_id
   }
-}
-
-resource "aws_route53_record" "www" {
-  count = var.credentials_domain_zone_id != "" ? 1 : 0
-  zone_id = var.credentials_domain_zone_id 
-  name    = var.credentials_domain
-  type    = "CNAME"
-  ttl     = "300"
-  records = [module.apigateway_with_cors.lambda_url]
 }
 
 output "base_url" {
