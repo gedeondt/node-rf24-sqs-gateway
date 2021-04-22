@@ -4,6 +4,7 @@ terraform/.terraform/
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 terraform.tfvars
+.terraform.tfstate.lock.info
 node_modules
 package-lock.json
 run.sh
