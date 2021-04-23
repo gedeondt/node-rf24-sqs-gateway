@@ -1,19 +1,19 @@
 variable "credentials_domain" {
-    type = "string"
+    type = string
     default = ""
 }
 
 variable "credentials_subdomain" {
-    type = "string"
+    type = string
     default = ""
 }
 
 variable "credentials_cert_arn" {
-    type = "string"
+    type = string
     default = ""
 }
 
 variable "credentials_domain_zone_id" {
-    type = "string"
+    type = string
     default = ""
 }

@@ -7,7 +7,7 @@ exports.handler = function (event, context, callback) {
   try {
     savedPasswords = JSON.parse(process.env.PASSWORDS);
   } catch (e) {
-    callback(null, { statusCode: 503, body: "No passwords configured" });
+    callback(null, cors({ statusCode: 503, body: "No passwords configured" }));
     return;
   }
   
@@ -17,7 +17,7 @@ exports.handler = function (event, context, callback) {
     user = requestObject['user'];
     password = requestObject['password'];
   } catch (e) {
-    callback(null, { statusCode: 400, body: "Check json:"+e });
+    callback(null, cors({ statusCode: 400, body: "Check json:"+e }));
     return;
   }
 
@@ -34,17 +34,27 @@ exports.handler = function (event, context, callback) {
       //Assume Role
       sts.assumeRole(roleToAssume, function(err, data) {
           console.log(err, data);
-            callback(null, {
+            callback(null, cors({
               statusCode: 200,
               headers: {
                 'Content-Type': 'application/json; charset=utf-8',
               },
               body: JSON.stringify(data.Credentials),
-            });
+            }));
       });
   }
   else
   {
-    callback(null, { statusCode: 401, body: "Bad credentials"});
+    callback(null, cors({ statusCode: 401, body: "Bad credentials"}));
   }
+}
+
+function cors(response)
+{
+  return {...response,
+  "headers": {
+    "Access-Control-Allow-Methods":"DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT",
+    "Access-Control-Allow-Origin":"*",
+    "Access-Control-Allow-Headers ":"Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
+  }}
 }

@@ -35,8 +35,7 @@ EOF
 }
 
 module "apigateway_with_cors" {
-  source  = "alparius/apigateway-with-cors/aws"
-  version = "0.3.1"
+  source  = "./modules/api-cors"
 
   lambda_function_name = aws_lambda_function.credentials.function_name
   lambda_invoke_arn    = aws_lambda_function.credentials.invoke_arn
