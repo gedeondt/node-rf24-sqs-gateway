@@ -7,6 +7,7 @@ var sqs = new AWS.SQS({apiVersion: '2012-11-05'});
 var queueURL = process.env.AWS_QUEUE;
 
 var queueParams = {
+    MaxNumberOfMessages: 1,
     AttributeNames: [
        "SentTimestamp"
     ],
@@ -20,18 +21,23 @@ var queueParams = {
 };
 
 var rf24= new nrf24.nRF24(parseInt(process.env.CE), parseInt(process.env.CS));
+rf24.begin(true);
+rf24.useWritePipe(process.env.PIPE,true);
 
 function getMessage()
 {
    sqs.receiveMessage(queueParams, function(err, data) {
         if (err) {
             console.log("Receive Error", err);
-        } else if (data.Messages) {
-            console.log(data);
+        } else if (data.Messages) {            
+            let success = rf24.write(Buffer.from(data.Messages[0].Body));
+            console.log("Sent " + ( success ? "OK" : "KO" ) + Buffer.from(data.Messages[0].Body));
+
             var deleteParams = {
             QueueUrl: queueURL,
             ReceiptHandle: data.Messages[0].ReceiptHandle
             };
+            
             sqs.deleteMessage(deleteParams, function(err, data) {
                 if (err) {
                     console.log("Delete Error", err);
