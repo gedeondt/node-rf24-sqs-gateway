@@ -7,10 +7,10 @@
 #define CE_PIN 9
 #define CSN_PIN 10
 
-#define P1_BTN_UP 11
-#define P1_BTN_DOWN 11
-#define P2_BTN_UP 11
-#define P2_BTN_DOWN 11
+#define P1_BTN_UP 7
+#define P1_BTN_DOWN 8
+#define P2_BTN_UP 5
+#define P2_BTN_DOWN 4
 
 #define P1_LINE_ON A0
 #define P1_LINE_SELECT A1
@@ -19,7 +19,7 @@
 
 #define TIMER_OFF 0
 #define TIMER_READY 1
-#define TIMER_DELAY 30000
+#define TIMER_DELAY 10
 
 #define GO_UP 1
 #define GO_DOWN 0
@@ -36,8 +36,8 @@ RF24 radio(CE_PIN, CSN_PIN);
 //vector para los datos recibidos
 char datos[32];   // deviceid[4]+type[4]+operation[2]+data[22]
 
-int stateP1, newStateP1 = 0;
-int stateP2, newStateP2 = 0;
+byte stateP1 = 0b00000000;
+byte stateP2 = 0b00000000;
 
 int timer = TIMER_OFF; // En 0 parado, en 1 salta
 
@@ -54,6 +54,10 @@ void setup()
   pinMode(P1_LINE_SELECT,OUTPUT);
   pinMode(P2_LINE_ON,OUTPUT);
   pinMode(P2_LINE_SELECT,OUTPUT);
+  digitalWrite(P1_LINE_ON, RELAY_OFF);
+  digitalWrite(P1_LINE_SELECT, RELAY_OFF);
+  digitalWrite(P2_LINE_ON, RELAY_OFF);
+  digitalWrite(P2_LINE_SELECT, RELAY_OFF);
   
   //inicializamos el puerto serie
   Serial.begin(115200);
@@ -72,9 +76,6 @@ void setup()
 // Paramos motores y timer
 void stopMotor(int lineOn, int lineSelect)
 {
-  stateP1, newStateP1 = 0;
-  stateP2, newStateP2 = 0;
-
   digitalWrite(lineOn, RELAY_OFF);
   digitalWrite(lineSelect, RELAY_OFF);
   timer = TIMER_OFF;
@@ -88,21 +89,38 @@ void startMotor(int lineOn, int lineSelect, int dir)
   timer = TIMER_DELAY;
 }
 
-void checkButtons(int *state, int *newState, int btnUP, int bntDOWN, int lineOn, int lineSelect)
+void printByte(byte what)
 {
-  bitWrite(*newState, digitalRead(btnUP), 0);
-  bitWrite(*newState, digitalRead(bntDOWN), 1);
+  for(int i = 7; i>=0; i--) {
+    Serial.print((char)('0' + ((what>>i)&1)));
+  }
+  Serial.println();
+}
 
-  if(newState != state)
+void checkButtons(byte *state, int btnUP, int bntDOWN, int lineOn, int lineSelect)
+{
+  byte newState = 0b00000000;
+  
+  Serial.print("Estado ");
+  Serial.println(*state);
+  
+  bitWrite(newState, 0, !digitalRead(btnUP));
+  bitWrite(newState, 1, !digitalRead(bntDOWN));
+  
+  Serial.print("Nuevo estado ");
+  Serial.println(newState);
+
+  if(newState != *state)
   {
-    Serial.println("Cambio de estado");
-    Serial.println(*newState);
+    Serial.println("\nCambio de estado\n");
 
     switch((int) newState) {
-      case 0: stopMotor(lineOn, lineSelect); break;
-      case 1: stopMotor(lineOn, lineSelect); startMotor(lineOn,lineSelect, GO_DOWN); break;
-      case 2: stopMotor(lineOn, lineSelect); startMotor(lineOn,lineSelect, GO_UP); break;
+      case 0b00000000: stopMotor(lineOn, lineSelect); break;
+      case 0b00000001: stopMotor(lineOn, lineSelect); startMotor(lineOn,lineSelect, GO_DOWN); break;
+      case 0b00000010: stopMotor(lineOn, lineSelect); startMotor(lineOn,lineSelect, GO_UP); break;
     }
+
+    *state = newState;
   }
 }
 
@@ -129,8 +147,8 @@ void checkTimer()
 void loop() {
  uint8_t numero_canal;
 
- checkButtons(&stateP1, &newStateP1, P1_BTN_UP, P1_BTN_DOWN, P1_LINE_ON, P1_LINE_SELECT);
- checkButtons(&stateP2, &newStateP2, P2_BTN_UP, P2_BTN_DOWN, P2_LINE_ON, P2_LINE_SELECT);
+ checkButtons(&stateP1, P1_BTN_UP, P1_BTN_DOWN, P1_LINE_ON, P1_LINE_SELECT);
+ checkButtons(&stateP2, P2_BTN_UP, P2_BTN_DOWN, P2_LINE_ON, P2_LINE_SELECT);
  
  //if ( radio.available(&numero_canal) )
  if ( radio.available() )
