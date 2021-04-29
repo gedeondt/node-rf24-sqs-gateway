@@ -12,14 +12,20 @@
 #define P2_BTN_UP 11
 #define P2_BTN_DOWN 11
 
-#define P1_LINE_UP 11
-#define P1_LINE_DOWN 11
-#define P2_LINE_UP 11
-#define P2_LINE_DOWN 11
+#define P1_LINE_ON A0
+#define P1_LINE_SELECT A1
+#define P2_LINE_ON A2
+#define P2_LINE_SELECT 6
 
 #define TIMER_OFF 0
 #define TIMER_READY 1
-#define TIMER_DELAY 30
+#define TIMER_DELAY 30000
+
+#define GO_UP 1
+#define GO_DOWN 0
+
+#define RELAY_ON 0
+#define RELAY_OFF 1
 
 //Variable con la dirección del canal que se va a leer
 const uint64_t direccion = 0x72646F4E31LL; 
@@ -44,10 +50,10 @@ void setup()
   pinMode(P2_BTN_DOWN,INPUT_PULLUP);
 
   // Salidas a relés
-  pinMode(P1_LINE_UP,OUTPUT);
-  pinMode(P1_LINE_DOWN,OUTPUT);
-  pinMode(P2_LINE_UP,OUTPUT);
-  pinMode(P2_LINE_DOWN,OUTPUT);
+  pinMode(P1_LINE_ON,OUTPUT);
+  pinMode(P1_LINE_SELECT,OUTPUT);
+  pinMode(P2_LINE_ON,OUTPUT);
+  pinMode(P2_LINE_SELECT,OUTPUT);
   
   //inicializamos el puerto serie
   Serial.begin(115200);
@@ -64,24 +70,25 @@ void setup()
 }
 
 // Paramos motores y timer
-void stopMotor(int lineUP, int lineDOWN)
+void stopMotor(int lineOn, int lineSelect)
 {
   stateP1, newStateP1 = 0;
   stateP2, newStateP2 = 0;
 
-  digitalWrite(lineUP, 0);
-  digitalWrite(lineDOWN, 0);
+  digitalWrite(lineOn, RELAY_OFF);
+  digitalWrite(lineSelect, RELAY_OFF);
   timer = TIMER_OFF;
 }
 
 // Enciende el motor y arranca el timer
-void startMotor(int line)
+void startMotor(int lineOn, int lineSelect, int dir)
 {
-  digitalWrite(line, 1);
+  digitalWrite(lineOn, RELAY_ON);
+  digitalWrite(lineSelect, dir);
   timer = TIMER_DELAY;
 }
 
-void checkButtons(int *state, int *newState, int btnUP, int bntDOWN, int lineUP, int lineDOWN)
+void checkButtons(int *state, int *newState, int btnUP, int bntDOWN, int lineOn, int lineSelect)
 {
   bitWrite(*newState, digitalRead(btnUP), 0);
   bitWrite(*newState, digitalRead(bntDOWN), 1);
@@ -92,9 +99,9 @@ void checkButtons(int *state, int *newState, int btnUP, int bntDOWN, int lineUP,
     Serial.println(*newState);
 
     switch((int) newState) {
-      case 0: stopMotor(lineUP, lineDOWN); break;
-      case 1: stopMotor(lineUP, lineDOWN); startMotor(lineUP); break;
-      case 2: stopMotor(lineUP, lineDOWN); startMotor(bntDOWN); break;
+      case 0: stopMotor(lineOn, lineSelect); break;
+      case 1: stopMotor(lineOn, lineSelect); startMotor(lineOn,lineSelect, GO_DOWN); break;
+      case 2: stopMotor(lineOn, lineSelect); startMotor(lineOn,lineSelect, GO_UP); break;
     }
   }
 }
@@ -107,8 +114,8 @@ void checkTimer()
     {
       Serial.println("Timer salta");
       timer = TIMER_OFF;
-      stopMotor(P1_LINE_UP, P1_LINE_DOWN);
-      stopMotor(P2_LINE_UP, P2_LINE_DOWN);
+      stopMotor(P1_LINE_ON, P1_LINE_SELECT);
+      stopMotor(P2_LINE_ON, P2_LINE_SELECT);
     }
     else
     {
@@ -122,8 +129,8 @@ void checkTimer()
 void loop() {
  uint8_t numero_canal;
 
- checkButtons(&stateP1, &newStateP1, P1_BTN_UP, P1_BTN_DOWN, P1_LINE_UP, P1_LINE_DOWN);
- checkButtons(&stateP2, &newStateP2, P2_BTN_UP, P2_BTN_DOWN, P2_LINE_UP, P2_LINE_DOWN);
+ checkButtons(&stateP1, &newStateP1, P1_BTN_UP, P1_BTN_DOWN, P1_LINE_ON, P1_LINE_SELECT);
+ checkButtons(&stateP2, &newStateP2, P2_BTN_UP, P2_BTN_DOWN, P2_LINE_ON, P2_LINE_SELECT);
  
  //if ( radio.available(&numero_canal) )
  if ( radio.available() )
