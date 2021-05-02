@@ -19,7 +19,7 @@
 
 #define TIMER_OFF 0
 #define TIMER_READY 1
-#define TIMER_DELAY 10
+#define TIMER_DELAY 40
 
 #define GO_UP 1
 #define GO_DOWN 0
@@ -34,7 +34,11 @@ const uint64_t direccion = 0x72646F4E31LL;
 RF24 radio(CE_PIN, CSN_PIN);
 
 //vector para los datos recibidos
-char datos[32];   // deviceid[4]+type[4]+operation[2]+data[22]
+char datos[32];   // deviceid[4]+type[4]+operation[4]+data[20]
+String device = "0000"; // Yo
+String type = "1111"; // Persiana
+String operationDown = "2222";
+String operationUp = "3333";
 
 byte stateP1 = 0b00000000;
 byte stateP2 = 0b00000000;
@@ -84,6 +88,7 @@ void stopMotor(int lineOn, int lineSelect)
 // Enciende el motor y arranca el timer
 void startMotor(int lineOn, int lineSelect, int dir)
 {
+  stopMotor(lineOn, lineSelect);
   digitalWrite(lineOn, RELAY_ON);
   digitalWrite(lineSelect, dir);
   timer = TIMER_DELAY;
@@ -101,23 +106,17 @@ void checkButtons(byte *state, int btnUP, int bntDOWN, int lineOn, int lineSelec
 {
   byte newState = 0b00000000;
   
-  Serial.print("Estado ");
-  Serial.println(*state);
-  
   bitWrite(newState, 0, !digitalRead(btnUP));
   bitWrite(newState, 1, !digitalRead(bntDOWN));
   
-  Serial.print("Nuevo estado ");
-  Serial.println(newState);
-
   if(newState != *state)
   {
     Serial.println("\nCambio de estado\n");
 
     switch((int) newState) {
       case 0b00000000: stopMotor(lineOn, lineSelect); break;
-      case 0b00000001: stopMotor(lineOn, lineSelect); startMotor(lineOn,lineSelect, GO_DOWN); break;
-      case 0b00000010: stopMotor(lineOn, lineSelect); startMotor(lineOn,lineSelect, GO_UP); break;
+      case 0b00000001: startMotor(lineOn,lineSelect, GO_DOWN); break;
+      case 0b00000010: startMotor(lineOn,lineSelect, GO_UP); break;
     }
 
     *state = newState;
@@ -150,21 +149,56 @@ void loop() {
  checkButtons(&stateP1, P1_BTN_UP, P1_BTN_DOWN, P1_LINE_ON, P1_LINE_SELECT);
  checkButtons(&stateP2, P2_BTN_UP, P2_BTN_DOWN, P2_LINE_ON, P2_LINE_SELECT);
  
- //if ( radio.available(&numero_canal) )
  if ( radio.available() )
  {    
+
+     Serial.println("[Radio] Mensaje");
+
      //Leemos los datos y los guardamos en la variable datos[]
      radio.read(datos,sizeof(datos));
      
-     //reportamos por el puerto serial los datos recibidos
-     Serial.print(datos[0]);
-     Serial.print(datos[1]);
-     Serial.println(datos[2]);
+     String strDatos = String(datos);
+     String strDevice = strDatos.substring(0,4);
+     String strType = strDatos.substring(4,8);
+     String strOperation = strDatos.substring(8,12);
+     String strMotor = strDatos.substring(12,13);
+     
+     Serial.print("Device: ");
+     Serial.println(strDevice);
+     Serial.print("Type: ");
+     Serial.println(strType);
+     Serial.print("Operation: ");
+     Serial.println(strOperation);
 
- }
- else
- {
-     Serial.println("No hay datos de radio disponibles");
+     if(strDevice == device)
+     {
+        Serial.println("[Radio] Mensaje para mi");
+        Serial.println(datos);
+        if(strType == type)
+        {
+          Serial.println("[Radio] Para el módulo persiana");
+          if(strOperation == operationDown)
+          {
+              Serial.println("[Radio] Bajar persiana");
+              int lineOn = strMotor == "0" ? P1_LINE_ON : P2_LINE_ON;
+              int lineSelect = strMotor == "0" ? P1_LINE_SELECT : P2_LINE_SELECT;
+              startMotor(lineOn, lineSelect, GO_DOWN);
+          }
+
+          if(strOperation == operationUp)
+          {
+              Serial.println("[Radio] Subir persiana");
+              int lineOn = strMotor == "0" ? P1_LINE_ON : P2_LINE_ON;
+              int lineSelect = strMotor == "0" ? P1_LINE_SELECT : P2_LINE_SELECT;
+              startMotor(lineOn, lineSelect, GO_UP);
+          }
+        }
+     }
+     else
+     {
+        Serial.println("[Radio] No parecep para mi");
+        Serial.println(datos);
+     }
  }
 
  checkTimer();
